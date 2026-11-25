@@ -2,6 +2,7 @@
 import { storage } from './net.js';
 
 let ctx = null;
+let unlocked = false; // browsers block audio until the first user gesture
 let muted = storage.get('chess:muted') === '1';
 
 function audio() {
@@ -15,11 +16,16 @@ function audio() {
 }
 
 // Browsers only allow audio after a user gesture; unlock on the first one.
-for (const ev of ['pointerdown', 'keydown']) window.addEventListener(ev, () => audio(), { once: true, capture: true });
+for (const ev of ['pointerdown', 'keydown']) {
+  window.addEventListener(ev, () => {
+    unlocked = true;
+    audio();
+  }, { once: true, capture: true });
+}
 
 /** Play a sequence of [frequencyHz, durationSec] notes. */
 function seq(notes, { type = 'square', gain = 0.06 } = {}) {
-  if (muted) return;
+  if (muted || !unlocked) return;
   const ac = audio();
   if (!ac) return;
   let t = ac.currentTime + 0.01;
