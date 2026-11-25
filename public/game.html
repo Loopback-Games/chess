@@ -3,7 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Chess game</title>
+  <title>Loopback Chess · Game</title>
+  <meta name="theme-color" content="#101015" />
+  <link rel="icon" type="image/png" href="img/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" />
   <link rel="stylesheet" href="style.css" />
   <script type="importmap">
     {
@@ -15,10 +20,11 @@
 </head>
 <body>
   <header class="topbar">
-    <a href="./" class="brand">♞ Chess</a>
+    <a href="./" class="brand"><img src="img/logo.png" alt="" width="36" height="36" /><span class="gradient-text">LOOPBACK CHESS</span></a>
     <div class="share">
       <input id="link" readonly aria-label="Game link" />
       <button id="copy">Copy link</button>
+      <button id="sound" class="ghost icon-btn" aria-label="Toggle sound" title="Toggle sound">♪</button>
     </div>
   </header>
   <main class="game">
@@ -35,9 +41,9 @@
       <div id="banner" class="banner card" hidden></div>
       <div class="actions">
         <button id="flip" title="Flip board">⇅ Flip</button>
-        <button id="draw">½ Offer draw</button>
+        <button id="draw">½ Draw</button>
         <button id="resign" class="danger">⚑ Resign</button>
-        <button id="rematch" class="primary" hidden>Rematch</button>
+        <button id="rematch" class="primary" hidden>▶ Rematch</button>
       </div>
       <div class="card moves-card">
         <h2>Moves</h2>

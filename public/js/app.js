@@ -1,7 +1,9 @@
 import { Chess } from 'chess.js';
 import { connectToGame, setToken, storage } from './net.js';
+import { installPieceStyles, pieceClass } from './sprites.js';
+import { sfx, isMuted, toggleMute } from './sound.js';
 
-const GLYPH = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
+installPieceStyles();
 const FILES = 'abcdefgh';
 const gameId = new URLSearchParams(location.search).get('g') ?? '';
 
@@ -26,6 +28,7 @@ $('copy').onclick = async () => {
     $('link').select();
   }
   setTimeout(() => ($('copy').textContent = 'Copy link'), 1500);
+  sfx.join();
 };
 
 // ---------- networking ----------
@@ -56,6 +59,7 @@ if (!/^[a-z0-9]{10}$/.test(gameId)) {
 const send = (msg) => net.send(msg);
 
 function onState(s, yourColor) {
+  playSounds(state, s, yourColor);
   const firstState = !state;
   const colorChanged = you !== yourColor;
   state = s;
@@ -101,15 +105,24 @@ function renderBoard() {
       if (col === 0) el.insertAdjacentHTML('beforeend', `<span class="coord rank">${sq[1]}</span>`);
       if (row === 7) el.insertAdjacentHTML('beforeend', `<span class="coord file">${sq[0]}</span>`);
       if (piece) {
-        const p = document.createElement('span');
-        p.className = `piece ${piece.color}`;
-        p.textContent = GLYPH[piece.type];
+        const p = pieceEl(piece.type, piece.color);
         if (canMove() && piece.color === you) p.classList.add('mine');
         el.appendChild(p);
       }
       boardEl.appendChild(el);
     }
   }
+  // Little "landing" hop when a new move arrives.
+  const key = state?.lastMove ? state.lastMove.from + state.lastMove.to + state.history.length : '';
+  boardEl.classList.toggle('pop', key !== lastPopKey && !!key);
+  lastPopKey = key;
+}
+let lastPopKey = '';
+
+function pieceEl(type, color) {
+  const p = document.createElement('span');
+  p.className = `piece ${color === 'w' ? 'white' : 'black'} ${pieceClass(type, color)}`;
+  return p;
 }
 
 function renderPlayers() {
@@ -140,10 +153,18 @@ function renderClocks() {
     let ms = clockBase[color];
     if (state.clock.running && state.status === 'active' && state.turn === color) ms -= performance.now() - clockBase.at;
     ms = Math.max(0, ms);
+    // Low-time warning ticks for your own running clock.
+    if (color === you && state.turn === you && state.status === 'active' && ms > 0 && ms < 10_000) {
+      const sec = Math.ceil(ms / 1000);
+      if (sec !== lastTick) sfx.tick();
+      lastTick = sec;
+    }
     c.textContent = fmt(ms);
     c.classList.toggle('low', ms < 20_000);
   }
 }
+
+let lastTick = null;
 
 function renderSide() {
   const s = state;
@@ -217,6 +238,9 @@ function tryMove(from, to) {
 function commitMove(from, to, promotion) {
   // Optimistic update; the server's next state message is authoritative.
   const move = chess.move({ from, to, promotion });
+  if (move.san.includes('+')) sfx.check();
+  else if (move.captured) sfx.capture();
+  else sfx.move();
   state = { ...state, lastMove: { from, to }, turn: chess.turn(), inCheck: chess.inCheck(), history: [...state.history, move.san] };
   selected = null;
   render();
@@ -229,9 +253,9 @@ function askPromotion(to) {
     promo.replaceChildren();
     for (const t of ['q', 'r', 'b', 'n']) {
       const b = document.createElement('button');
-      b.className = `piece ${you}`;
-      b.textContent = GLYPH[t];
+      b.append(pieceEl(t, you));
       b.title = pieceName(t);
+      b.setAttribute('aria-label', `Promote to ${pieceName(t)}`);
       b.onclick = () => done(t);
       promo.appendChild(b);
     }
@@ -264,12 +288,13 @@ boardEl.addEventListener('pointerdown', (e) => {
   e.preventDefault();
   selected = sq;
   renderBoard();
-  const pieceEl = boardEl.querySelector(`[data-sq="${sq}"] .piece`);
-  const ghost = pieceEl.cloneNode(true);
+  const dragged = boardEl.querySelector(`[data-sq="${sq}"] .piece`);
+  const ghost = dragged.cloneNode(true);
   ghost.classList.add('ghost');
-  ghost.style.fontSize = getComputedStyle(pieceEl).fontSize;
+  const rect = dragged.getBoundingClientRect();
+  ghost.style.width = `${rect.width}px`;
   document.body.appendChild(ghost);
-  pieceEl.classList.add('dragging');
+  dragged.classList.add('dragging');
   drag = { from: sq, ghost, moved: false, x: e.clientX, y: e.clientY };
   moveGhost(e);
 });
@@ -291,6 +316,34 @@ window.addEventListener('pointerup', (e) => {
 function moveGhost(e) {
   drag.ghost.style.left = `${e.clientX}px`;
   drag.ghost.style.top = `${e.clientY}px`;
+}
+
+const soundBtn = $('sound');
+const paintSound = () => {
+  soundBtn.textContent = isMuted() ? '✕' : '♪';
+  soundBtn.title = isMuted() ? 'Sound off' : 'Sound on';
+};
+paintSound();
+soundBtn.onclick = () => {
+  toggleMute();
+  paintSound();
+};
+
+/** Chiptune feedback for changes that arrive from the server. */
+function playSounds(prev, next, yourColor) {
+  if (!prev) return;
+  if (prev.status === 'waiting' && next.status === 'active') return sfx.join();
+  if (prev.status !== 'over' && next.status === 'over') {
+    if (next.result === '1/2-1/2' || !yourColor) return sfx.draw();
+    const won = (next.result === '1-0') === (yourColor === 'w');
+    return won ? sfx.win() : sfx.lose();
+  }
+  if (next.history.length > prev.history.length) {
+    const san = next.history.at(-1);
+    if (san.includes('+')) sfx.check();
+    else if (san.includes('x')) sfx.capture();
+    else sfx.move();
+  }
 }
 
 $('flip').onclick = () => {

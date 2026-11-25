@@ -3,7 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Chess</title>
+  <title>Loopback Chess</title>
+  <meta name="description" content="Play 8-bit chess with a friend online. No account needed." />
+  <meta name="theme-color" content="#101015" />
+  <link rel="icon" type="image/png" href="img/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" />
   <link rel="stylesheet" href="style.css" />
   <script type="importmap">
     {
@@ -15,13 +21,19 @@
 </head>
 <body>
   <main class="lobby">
-    <h1>♞ Chess</h1>
-    <p class="tagline">Play a friend online — no account needed. Create a game and share the link.</p>
+    <header class="hero">
+      <img src="img/logo.png" alt="Loopback Games logo" width="112" height="112" />
+      <div class="studio">LOOPBACK GAMES</div>
+      <h1 class="gradient-text">LOOPBACK<br />CHESS</h1>
+      <p class="tagline">Play a friend online. No account needed. Create a game and share the link.</p>
+    </header>
+
     <form id="create" class="card">
-      <label>Your name
-        <input id="name" maxlength="24" placeholder="Anonymous" autocomplete="nickname" />
+      <h2>New game</h2>
+      <label><span class="lbl">Your name</span>
+        <input id="name" maxlength="24" placeholder="PLAYER 1" autocomplete="nickname" />
       </label>
-      <label>Time control
+      <label><span class="lbl">Time control</span>
         <select id="tc">
           <option value="none">Untimed</option>
           <option value="1+0">Bullet · 1+0</option>
@@ -33,19 +45,23 @@
       </label>
       <fieldset class="colors">
         <legend>Play as</legend>
-        <label><input type="radio" name="color" value="random" checked /> Random</label>
-        <label><input type="radio" name="color" value="w" /> White</label>
-        <label><input type="radio" name="color" value="b" /> Black</label>
+        <label><input type="radio" name="color" value="random" checked /><span>Random</span></label>
+        <label><input type="radio" name="color" value="w" /><span>White</span></label>
+        <label><input type="radio" name="color" value="b" /><span>Black</span></label>
       </fieldset>
-      <button type="submit" class="primary">Create game</button>
+      <button type="submit" class="primary">▶ Start game</button>
       <p id="err" class="error" hidden></p>
     </form>
+
     <form id="joinForm" class="card">
-      <label>Have a link or code?
+      <h2>Join a game</h2>
+      <label><span class="lbl">Link or code</span>
         <input id="code" placeholder="Paste a game link or code" />
       </label>
       <button type="submit">Join</button>
     </form>
+
+    <p class="footer">© Loopback Games</p>
   </main>
   <script type="module" src="js/lobby.js"></script>
 </body>

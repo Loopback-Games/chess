@@ -10,7 +10,9 @@ Browser-based multiplayer chess. The site is static (GitHub Pages) and the game 
 - Click-to-move or drag-and-drop (mouse and touch), legal-move hints, last-move and check highlights
 - Draw offers, resignation, rematch (colors swap), chat
 - Survives reloads and dropped connections: the game lives on the server, and clients reconnect automatically
-- Responsive layout with light/dark themes
+- 8-bit look in the Loopback Games brand palette: original 16×16 pixel-art pieces, pixel fonts (Press Start 2P, VT323), notched pixel borders, neon glow and CRT scanlines
+- Chiptune sound effects synthesized with WebAudio (move, capture, check, win/lose/draw, low-time ticks), with a mute toggle
+- Responsive layout for desktop and phones
 
 ## Architecture
 
@@ -47,6 +49,9 @@ public/            # static site (deployed to GitHub Pages)
   js/game.js       # rules wrapper, seats, clocks, draw/rematch, (de)serialization
   js/net.js        # REST + WebSocket client with heartbeat and reconnect
   js/app.js        # board UI and interaction
+  js/sprites.js    # pixel-art piece grids -> SVG sprites (brand palette)
+  js/sound.js      # chiptune sound effects
+  img/             # Loopback Games logo + favicon
   js/lobby.js
 worker/index.js    # Cloudflare Worker + GameRoom Durable Object
 wrangler.toml      # Worker config (bindings, migrations, allowed origins)
