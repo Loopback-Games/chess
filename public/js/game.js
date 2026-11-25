@@ -82,6 +82,12 @@ export class Game {
     return Math.max(0, ms);
   }
 
+  /** Epoch ms at which the side to move flags, or null if no clock is running. */
+  flagTime() {
+    if (!this.clock || this.status !== 'active' || this.clock.runningSince == null) return null;
+    return this.clock.runningSince + this.clock[this.chess.turn()];
+  }
+
   /** Ends the game on time if the side to move has flagged. Returns true if it did. */
   checkFlag() {
     if (!this.clock || this.status !== 'active') return false;
@@ -171,23 +177,6 @@ export class Game {
     return false;
   }
 
-  /** Pauses a running clock (used while the host's page is away). */
-  pauseClock() {
-    if (this.clock && this.clock.runningSince != null) {
-      const turn = this.chess.turn();
-      this.clock[turn] = this.remaining(turn);
-      this.clock.runningSince = null;
-      this.clock.paused = true;
-    }
-  }
-
-  resumeClock() {
-    if (this.clock?.paused) {
-      delete this.clock.paused;
-      if (this.status === 'active') this.clock.runningSince = this.now();
-    }
-  }
-
   toJSON() {
     return {
       id: this.id,
@@ -200,15 +189,14 @@ export class Game {
       lastMove: this.lastMove,
       drawOffer: this.drawOffer,
       rematchOffer: this.rematchOffer,
-      clock: this.clock && { w: this.remaining('w'), b: this.remaining('b'), running: this.clock.runningSince != null },
+      clock: this.clock && { ...this.clock },
     };
   }
 
-  /** Rebuild a saved game. Time spent while nobody was hosting is not charged. */
+  /** Rebuild a saved game exactly (a running clock keeps running). */
   static fromJSON(data, { now = Date.now } = {}) {
     const g = new Game({ id: data.id, timeControl: data.timeControl, now });
     g.seats = data.seats;
-    for (const c of ['w', 'b']) if (g.seats[c]) g.seats[c].connected = false;
     g.chess.loadPgn(data.pgn);
     Object.assign(g, {
       status: data.status,
@@ -218,10 +206,7 @@ export class Game {
       drawOffer: data.drawOffer,
       rematchOffer: data.rematchOffer,
     });
-    if (data.clock) {
-      g.clock = { w: data.clock.w, b: data.clock.b, runningSince: null };
-      if (data.clock.running) g.clock.paused = true;
-    }
+    g.clock = data.clock ? { w: data.clock.w, b: data.clock.b, runningSince: data.clock.runningSince ?? null } : null;
     return g;
   }
 

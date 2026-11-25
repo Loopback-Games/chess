@@ -31,7 +31,7 @@ $('copy').onclick = async () => {
 // ---------- networking ----------
 
 let net = { send() {} };
-if (!/^[a-z0-9]{6,32}$/.test(gameId)) {
+if (!/^[a-z0-9]{10}$/.test(gameId)) {
   $('status').textContent = 'No such game. Head back to the lobby to start one.';
 } else {
   net = connectToGame(
@@ -51,7 +51,6 @@ if (!/^[a-z0-9]{6,32}$/.test(gameId)) {
     },
     { name: storage.get('chess:name') ?? '' },
   );
-  if (net.isHost) $('hostNote').hidden = false;
 }
 
 const send = (msg) => net.send(msg);
@@ -160,8 +159,6 @@ function renderSide() {
     const winner = s.result === '1-0' ? 'White wins' : s.result === '0-1' ? 'Black wins' : 'Draw';
     status = `${winner} by ${s.reason} (${s.result})`;
   }
-  if (s.clock && !s.clock.running && s.status === 'active' && s.history.length >= 2 && !connNotice)
-    status += ' · clock paused until both players are connected';
   $('status').textContent = status;
 
   const banner = $('banner');

@@ -4,7 +4,10 @@
   "description": "Web-based multiplayer chess",
   "scripts": {
     "start": "node scripts/serve.js",
-    "test": "node --test test/*.test.js"
+    "dev:worker": "wrangler dev --var ALLOW_LOCALHOST:true",
+    "test": "node --test test/*.test.js",
+    "build:worker": "wrangler deploy --dry-run --minify --outdir dist",
+    "deploy:worker": "wrangler deploy"
   },
   "repository": {
     "type": "git",
@@ -20,7 +23,8 @@
     "node": ">=18"
   },
   "devDependencies": {
-    "chess.js": "^1.4.0"
+    "chess.js": "^1.4.0",
+    "wrangler": "^4.168.0"
   },
   "private": true
 }

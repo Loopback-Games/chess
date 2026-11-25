@@ -77,18 +77,18 @@ test('clock starts after both first moves, applies increment, and flags', () => 
   assert.equal(g.reason, 'timeout');
 });
 
-test('serializes and restores, pausing a running clock', () => {
+test('serializes and restores exactly, including a running clock', () => {
   let t = 0;
   const { g, w } = seated({ timeControl: '5+0', now: () => t });
   g.move('w', { from: 'd2', to: 'd4' });
   g.move('b', { from: 'd7', to: 'd5' });
   t += 7000;
-  const restored = Game.fromJSON(JSON.parse(JSON.stringify(g.toJSON())), { now: () => t + 60_000 });
+  const restored = Game.fromJSON(JSON.parse(JSON.stringify(g.toJSON())), { now: () => t });
   assert.equal(restored.chess.fen(), g.chess.fen());
   assert.equal(restored.colorOf(w), 'w');
   assert.equal(restored.remaining('w'), 293_000);
-  assert.equal(restored.publicState().clock.running, false);
-  assert.equal(restored.seats.w.connected, false);
-  restored.resumeClock();
-  assert.equal(restored.publicState().clock.running, true);
+  assert.equal(restored.flagTime(), 300_000);
+  t += 300_000;
+  assert.equal(restored.checkFlag(), true);
+  assert.equal(restored.result, '0-1');
 });

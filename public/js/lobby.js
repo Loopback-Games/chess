@@ -1,19 +1,29 @@
-import { createHostedGame, storage } from './net.js';
+import { createGame, storage } from './net.js';
 
 const nameInput = document.getElementById('name');
 nameInput.value = storage.get('chess:name') ?? '';
 nameInput.addEventListener('change', () => storage.set('chess:name', nameInput.value.trim()));
 
-document.getElementById('create').addEventListener('submit', (e) => {
+document.getElementById('create').addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = nameInput.value.trim();
   storage.set('chess:name', name);
-  const id = createHostedGame({
-    timeControl: document.getElementById('tc').value,
-    color: new FormData(e.target).get('color'),
-    name,
-  });
-  location.href = `game.html?g=${id}`;
+  const button = e.target.querySelector('button[type=submit]');
+  const err = document.getElementById('err');
+  err.hidden = true;
+  button.disabled = true;
+  try {
+    const id = await createGame({
+      timeControl: document.getElementById('tc').value,
+      color: new FormData(e.target).get('color'),
+      name,
+    });
+    location.href = `game.html?g=${id}`;
+  } catch (ex) {
+    err.textContent = `Couldn't create a game: ${ex.message}`;
+    err.hidden = false;
+    button.disabled = false;
+  }
 });
 
 document.getElementById('joinForm').addEventListener('submit', (e) => {
