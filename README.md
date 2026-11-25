@@ -6,7 +6,9 @@ Browser-based multiplayer chess. The site is static (GitHub Pages) and the game 
 
 - Real-time play between two players, with any number of spectators
 - Full rules via [chess.js](https://github.com/jhlywa/chess.js), checked on the server: check, checkmate, stalemate, castling, en passant, promotion, threefold repetition, fifty-move rule, insufficient material
-- Time controls (untimed, 1+0, 3+2, 5+0, 10+0, 15+10) with increment. The server flags a player who runs out of time even if nobody is connected.
+- **Daily games** (1, 3 or 7 days per move) for playing over days: each move resets the deadline, and a missed deadline loses on time even if nobody is online. Moves still show up instantly when both players have the board open, so a daily game can be played live too.
+- **Live clocks** (1+0, 3+2, 5+0, 10+0, 15+10, with increment) or untimed
+- **Your games** list in the lobby showing whose move it is and the time left; the tab title shows "● Your move"
 - Click-to-move or drag-and-drop (mouse and touch), legal-move hints, last-move and check highlights
 - Draw offers, resignation, rematch (colors swap), chat
 - Survives reloads and dropped connections: the game lives on the server, and clients reconnect automatically
@@ -31,7 +33,7 @@ Browser-based multiplayer chess. The site is static (GitHub Pages) and the game 
 - **One Durable Object per game** (`GameRoom`) is the authoritative server. It runs the shared `Game` class (`public/js/game.js`, also used by the unit tests), validates every action, and broadcasts state to everyone connected.
 - **The WebSocket Hibernation API** keeps idle games out of memory between moves. Pings get an automatic response without waking the game.
 - **Clocks** use Durable Object alarms that fire at the exact moment a player would run out of time.
-- **Storage:** each game's state is saved in its object's SQLite-backed storage. Games untouched for 30 days delete themselves.
+- **Storage:** each game's state is saved in its object's SQLite-backed storage. Games untouched for 90 days delete themselves.
 - **Security:** the Worker only accepts requests from the allowed origins (`ALLOWED_ORIGINS` in `wrangler.toml`). Seats are claimed with random tokens kept in the player's `localStorage`.
 
 ### Free-tier budget

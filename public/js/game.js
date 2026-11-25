@@ -1,7 +1,16 @@
 import { Chess } from 'chess.js';
 
+const DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * Live controls: `initial` ms each plus `increment` per move.
+ * Daily (correspondence) controls: `perMove` ms to make each move; the deadline resets after every move.
+ */
 export const TIME_CONTROLS = {
   none: null,
+  '1d': { initial: DAY, increment: 0, perMove: DAY },
+  '3d': { initial: 3 * DAY, increment: 0, perMove: 3 * DAY },
+  '7d': { initial: 7 * DAY, increment: 0, perMove: 7 * DAY },
   '1+0': { initial: 60_000, increment: 0 },
   '3+2': { initial: 180_000, increment: 2_000 },
   '5+0': { initial: 300_000, increment: 0 },
@@ -114,12 +123,19 @@ export class Game {
     }
 
     if (this.clock) {
+      const tc = TIME_CONTROLS[this.timeControl];
       const t = this.now();
       const plies = this.chess.history().length;
-      // Clocks start after each side has made its first move.
-      if (this.clock.runningSince != null) this.clock[color] -= t - this.clock.runningSince;
-      if (plies > 2) this.clock[color] += TIME_CONTROLS[this.timeControl].increment;
-      this.clock.runningSince = plies >= 2 ? t : null;
+      if (tc.perMove) {
+        // Daily: every move gives the opponent a fresh deadline, starting now.
+        this.clock.w = this.clock.b = tc.perMove;
+        this.clock.runningSince = t;
+      } else {
+        // Live: clocks start after each side has made its first move.
+        if (this.clock.runningSince != null) this.clock[color] -= t - this.clock.runningSince;
+        if (plies > 2) this.clock[color] += tc.increment;
+        this.clock.runningSince = plies >= 2 ? t : null;
+      }
     }
 
     this.lastMove = { from: move.from, to: move.to };

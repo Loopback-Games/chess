@@ -1,5 +1,5 @@
 import { Chess } from 'chess.js';
-import { connectToGame, setToken, storage } from './net.js';
+import { connectToGame, setToken, storage, rememberGame, formatClock } from './net.js';
 import { installPieceStyles, pieceClass } from './sprites.js';
 import { sfx, isMuted, toggleMute } from './sound.js';
 
@@ -67,6 +67,10 @@ function onState(s, yourColor) {
   if (firstState || colorChanged) flipped = you === 'b';
   chess = new Chess(s.fen);
   selected = null;
+  if (you) {
+    const opp = s.players[you === 'w' ? 'b' : 'w'];
+    rememberGame({ id: gameId, color: you, opponent: opp?.name ?? null, timeControl: s.timeControl });
+  }
   clockBase = s.clock ? { w: s.clock.w, b: s.clock.b, at: performance.now() } : null;
   render();
 }
@@ -159,8 +163,9 @@ function renderClocks() {
       if (sec !== lastTick) sfx.tick();
       lastTick = sec;
     }
-    c.textContent = fmt(ms);
-    c.classList.toggle('low', ms < 20_000);
+    c.textContent = formatClock(ms);
+    const daily = state.timeControl.endsWith('d');
+    c.classList.toggle('low', ms < (daily ? 2 * 3_600_000 : 20_000));
   }
 }
 
@@ -181,6 +186,7 @@ function renderSide() {
     status = `${winner} by ${s.reason} (${s.result})`;
   }
   $('status').textContent = status;
+  document.title = `${s.status === 'active' && you === s.turn ? '● Your move · ' : ''}Loopback Chess`;
 
   const banner = $('banner');
   banner.hidden = true;
@@ -379,11 +385,6 @@ function findKing(color) {
 }
 function pieceName(t) {
   return { k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', p: 'pawn' }[t];
-}
-function fmt(ms) {
-  const total = ms < 10_000 ? Math.ceil(ms / 100) / 10 : Math.ceil(ms / 1000);
-  if (ms < 10_000) return `0:${total.toFixed(1).padStart(4, '0')}`;
-  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 }
 let flashTimer;
 function flash(text) {

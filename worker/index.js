@@ -2,7 +2,7 @@ import { DurableObject } from 'cloudflare:workers';
 import { Game, TIME_CONTROLS, randomId, sanitizeName } from '../public/js/game.js';
 
 const GAME_ID = /^[a-z0-9]{10}$/;
-const IDLE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // delete games untouched for 30 days
+const IDLE_TTL_MS = 90 * 24 * 60 * 60 * 1000; // delete games untouched for 90 days
 const PING = '{"type":"ping"}';
 const PONG = '{"type":"pong"}';
 
@@ -20,7 +20,7 @@ export default {
     if (request.method === 'OPTIONS') {
       return new Response(null, {
         status: allowed ? 204 : 403,
-        headers: { ...cors, 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Max-Age': '86400' },
+        headers: { ...cors, 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Max-Age': '86400' },
       });
     }
 
@@ -42,6 +42,15 @@ export default {
         color: body.color,
       });
       return json({ id, token }, 201, cors);
+    }
+
+    // Public game summary (no seat tokens), used by the lobby's "Your games" list.
+    const peek = url.pathname.match(/^\/api\/games\/([a-z0-9]+)$/);
+    if (peek && request.method === 'GET') {
+      if (!allowed) return json({ error: 'Origin not allowed' }, 403);
+      if (!GAME_ID.test(peek[1])) return json({ error: 'Game not found' }, 404, cors);
+      const state = await env.GAMES.get(env.GAMES.idFromName(peek[1])).peek();
+      return state ? json(state, 200, { ...cors, 'Cache-Control': 'no-store' }) : json({ error: 'Game not found' }, 404, cors);
     }
 
     const ws = url.pathname.match(/^\/api\/games\/([a-z0-9]+)\/ws$/);
@@ -94,6 +103,14 @@ export class GameRoom extends DurableObject {
     this.game.seats[this.game.colorOf(token)].connected = false;
     await this.save();
     return token;
+  }
+
+  /** RPC: public state for the lobby, or null if the game doesn't exist. */
+  async peek() {
+    if (!this.game) return null;
+    if (this.game.checkFlag()) await this.commit();
+    const { pgn, ...state } = this.game.publicState();
+    return state;
   }
 
   async fetch() {

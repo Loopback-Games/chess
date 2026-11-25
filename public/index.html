@@ -28,6 +28,11 @@
       <p class="tagline">Play a friend online. No account needed. Create a game and share the link.</p>
     </header>
 
+    <section id="mygames" class="card" hidden>
+      <h2>Your games</h2>
+      <ul id="gamelist" class="gamelist"></ul>
+    </section>
+
     <form id="create" class="card">
       <h2>New game</h2>
       <label><span class="lbl">Your name</span>
@@ -35,12 +40,21 @@
       </label>
       <label><span class="lbl">Time control</span>
         <select id="tc">
-          <option value="none">Untimed</option>
-          <option value="1+0">Bullet · 1+0</option>
-          <option value="3+2">Blitz · 3+2</option>
-          <option value="5+0">Blitz · 5+0</option>
-          <option value="10+0" selected>Rapid · 10+0</option>
-          <option value="15+10">Rapid · 15+10</option>
+          <optgroup label="Daily · play over days">
+            <option value="1d">1 day per move</option>
+            <option value="3d" selected>3 days per move</option>
+            <option value="7d">7 days per move</option>
+          </optgroup>
+          <optgroup label="Live">
+            <option value="1+0">Bullet · 1+0</option>
+            <option value="3+2">Blitz · 3+2</option>
+            <option value="5+0">Blitz · 5+0</option>
+            <option value="10+0">Rapid · 10+0</option>
+            <option value="15+10">Rapid · 15+10</option>
+          </optgroup>
+          <optgroup label="No clock">
+            <option value="none">Untimed</option>
+          </optgroup>
         </select>
       </label>
       <fieldset class="colors">

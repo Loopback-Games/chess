@@ -89,3 +89,46 @@ export function connectToGame(id, ui, { name }) {
   open();
   return { send: (msg) => ws?.readyState === WebSocket.OPEN && ws.send(JSON.stringify(msg)) };
 }
+
+/** Public summary of a game (no tokens), or null if it no longer exists. */
+export async function fetchGame(id) {
+  const res = await fetch(`${API_BASE}/api/games/${encodeURIComponent(id)}`, { cache: 'no-store' });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Server error (${res.status})`);
+  return res.json();
+}
+
+// ---- "Your games": games this browser holds a seat in, for the lobby list ----
+const GAMES_KEY = 'chess:games';
+const MAX_GAMES = 50;
+
+export function listGames() {
+  try {
+    return JSON.parse(storage.get(GAMES_KEY) ?? '[]');
+  } catch {
+    return [];
+  }
+}
+
+export function rememberGame(entry) {
+  const games = listGames().filter((g) => g.id !== entry.id);
+  games.unshift({ ...entry, seen: Date.now() });
+  storage.set(GAMES_KEY, JSON.stringify(games.slice(0, MAX_GAMES)));
+}
+
+export function forgetGame(id) {
+  storage.set(GAMES_KEY, JSON.stringify(listGames().filter((g) => g.id !== id)));
+}
+
+/** Clock text: "2d 14h", "5h 12m", "4:59", or "0:08.3" in the last ten seconds. */
+export function formatClock(ms) {
+  const H = 3_600_000;
+  if (ms >= 24 * H) {
+    const d = Math.floor(ms / (24 * H));
+    return `${d}d ${Math.floor((ms % (24 * H)) / H)}h`;
+  }
+  if (ms >= H) return `${Math.floor(ms / H)}h ${Math.floor((ms % H) / 60_000)}m`;
+  if (ms < 10_000) return `0:${(Math.ceil(ms / 100) / 10).toFixed(1).padStart(4, '0')}`;
+  const total = Math.ceil(ms / 1000);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}

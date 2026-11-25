@@ -92,3 +92,22 @@ test('serializes and restores exactly, including a running clock', () => {
   assert.equal(restored.checkFlag(), true);
   assert.equal(restored.result, '0-1');
 });
+
+test('daily control: each move resets a per-move deadline, and missing it loses', () => {
+  const DAY = 86_400_000;
+  let t = 0;
+  const { g } = seated({ timeControl: '3d', now: () => t });
+  g.move('w', { from: 'e2', to: 'e4' });
+  assert.equal(g.flagTime(), 3 * DAY); // Black's deadline starts immediately
+  t += 2 * DAY;
+  assert.equal(g.remaining('b'), DAY);
+  g.move('b', { from: 'e7', to: 'e5' });
+  assert.equal(g.remaining('w'), 3 * DAY); // fresh deadline for White
+  assert.equal(g.remaining('b'), 3 * DAY);
+  t += 3 * DAY - 1;
+  assert.equal(g.checkFlag(), false);
+  t += 1;
+  assert.equal(g.checkFlag(), true);
+  assert.equal(g.result, '0-1');
+  assert.equal(g.reason, 'timeout');
+});
