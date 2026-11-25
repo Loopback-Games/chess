@@ -221,6 +221,7 @@ function renderSide() {
   const turnName = s.turn === 'w' ? 'White' : 'Black';
   let status;
   if (connNotice) status = connNotice;
+  else if (s.status === 'waiting' && canOpenEarly()) status = 'Your move — make your first move now, or share the link above.';
   else if (s.status === 'waiting') status = 'Waiting for an opponent — share the link above.';
   else if (s.status === 'active') {
     status = you === s.turn ? 'Your move' : `${turnName} to move`;
@@ -275,7 +276,9 @@ function button(label, onclick, cls = '') {
 
 // ---------- interaction ----------
 
-const canMove = () => state?.status === 'active' && you && chess.turn() === you;
+// White may open before an opponent joins (mirrors Game.canOpenEarly on the server).
+const canOpenEarly = () => state?.status === 'waiting' && you === 'w' && state.history.length === 0;
+const canMove = () => !!you && chess.turn() === you && (state?.status === 'active' || canOpenEarly());
 
 function tryMove(from, to) {
   const legal = chess.moves({ square: from, verbose: true }).filter((m) => m.to === to);

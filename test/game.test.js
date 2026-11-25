@@ -111,3 +111,38 @@ test('daily control: each move resets a per-move deadline, and missing it loses'
   assert.equal(g.result, '0-1');
   assert.equal(g.reason, 'timeout');
 });
+
+test('White can play the first move before Black joins; nothing more', () => {
+  const g = new Game();
+  const w = g.join({ name: 'Alice', preferColor: 'w' });
+  assert.equal(g.status, 'waiting');
+  g.move('w', { from: 'e2', to: 'e4' });
+  assert.equal(g.status, 'waiting');
+  assert.throws(() => g.move('w', { from: 'd2', to: 'd4' }), /Waiting for an opponent/);
+  const b = g.join({ name: 'Bob' });
+  assert.equal(b.color, 'b');
+  assert.equal(g.status, 'active');
+  g.move('b', { from: 'e7', to: 'e5' });
+  assert.deepEqual(g.chess.history(), ['e4', 'e5']);
+  assert.equal(g.colorOf(w.token), 'w');
+});
+
+test('a creator playing Black cannot move before White joins', () => {
+  const g = new Game();
+  g.join({ name: 'Bob', preferColor: 'b' });
+  assert.throws(() => g.move('b', { from: 'e7', to: 'e5' }), /Waiting/);
+  assert.throws(() => g.move('w', { from: 'e2', to: 'e4' }), /Waiting/); // no White seat yet
+});
+
+test("daily: Black's deadline starts when Black joins, not when White opened", () => {
+  const DAY = 86_400_000;
+  let t = 0;
+  const g = new Game({ timeControl: '1d', now: () => t });
+  g.join({ name: 'Alice', preferColor: 'w' });
+  g.move('w', { from: 'e2', to: 'e4' });
+  assert.equal(g.flagTime(), null);
+  t += 5 * DAY; // Black shows up days later
+  g.join({ name: 'Bob' });
+  assert.equal(g.remaining('b'), DAY);
+  assert.equal(g.flagTime(), 6 * DAY);
+});

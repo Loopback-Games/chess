@@ -69,7 +69,12 @@ export class Game {
     if (free.length === 2) color = preferColor === 'w' || preferColor === 'b' ? preferColor : Math.random() < 0.5 ? 'w' : 'b';
     const newToken = randomId(24);
     this.seats[color] = { token: newToken, name: sanitizeName(name) || (color === 'w' ? 'White' : 'Black'), connected: true };
-    if (this.seats.w && this.seats.b && this.status === 'waiting') this.status = 'active';
+    if (this.seats.w && this.seats.b && this.status === 'waiting') {
+      this.status = 'active';
+      // Daily: if White already opened, Black's deadline starts now that Black has arrived.
+      const tc = TIME_CONTROLS[this.timeControl];
+      if (tc?.perMove && this.chess.history().length > 0) this.clock.runningSince = this.now();
+    }
     return { color, token: newToken };
   }
 
@@ -110,8 +115,15 @@ export class Game {
     return true;
   }
 
+  /** White may play the first move before an opponent has joined. */
+  canOpenEarly(color) {
+    return this.status === 'waiting' && color === 'w' && !!this.seats.w && this.chess.history().length === 0;
+  }
+
   move(color, { from, to, promotion }) {
-    if (this.status !== 'active') throw new Error('Game is not in progress');
+    if (this.status !== 'active' && !this.canOpenEarly(color)) {
+      throw new Error(this.status === 'waiting' ? 'Waiting for an opponent to join' : 'Game is not in progress');
+    }
     if (this.checkFlag()) throw new Error('Out of time');
     if (this.chess.turn() !== color) throw new Error('Not your turn');
 
@@ -129,7 +141,8 @@ export class Game {
       if (tc.perMove) {
         // Daily: every move gives the opponent a fresh deadline, starting now.
         this.clock.w = this.clock.b = tc.perMove;
-        this.clock.runningSince = t;
+        // The opponent's deadline only runs once they're seated.
+        this.clock.runningSince = this.status === 'active' ? t : null;
       } else {
         // Live: clocks start after each side has made its first move.
         if (this.clock.runningSince != null) this.clock[color] -= t - this.clock.runningSince;
