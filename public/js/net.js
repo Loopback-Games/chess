@@ -40,7 +40,7 @@ export async function createGame({ timeControl, name, color }) {
 }
 
 /**
- * Connect the page to a game. Returns { send } for UI actions.
+ * Connect the page to a game. Returns { send, rename } for UI actions.
  * `ui` receives: onMessage(msg) and onStatus(text | null) for connection problems.
  */
 export function connectToGame(id, ui, { name }) {
@@ -49,6 +49,7 @@ export function connectToGame(id, ui, { name }) {
   let attempt = 0;
   let lastHeard = 0;
   let stopped = false;
+  let renaming = false;
 
   function open() {
     ws = new WebSocket(wsUrl);
@@ -74,6 +75,11 @@ export function connectToGame(id, ui, { name }) {
     };
     sock.onclose = () => {
       if (sock !== ws || stopped) return;
+      if (renaming) {
+        // Rejoining with the same seat token updates the name on the server.
+        renaming = false;
+        return open();
+      }
       const delay = Math.min(500 * 2 ** attempt++, 10_000);
       ui.onStatus('Connection lost — reconnecting…');
       setTimeout(open, delay);
@@ -87,7 +93,16 @@ export function connectToGame(id, ui, { name }) {
   }, PING_MS);
 
   open();
-  return { send: (msg) => ws?.readyState === WebSocket.OPEN && ws.send(JSON.stringify(msg)) };
+  return {
+    send: (msg) => ws?.readyState === WebSocket.OPEN && ws.send(JSON.stringify(msg)),
+    rename(newName) {
+      name = newName;
+      if (ws?.readyState === WebSocket.OPEN) {
+        renaming = true;
+        ws.close();
+      }
+    },
+  };
 }
 
 /** Public summary of a game (no tokens), or null if it no longer exists. */

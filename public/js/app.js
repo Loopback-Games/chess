@@ -1,5 +1,5 @@
 import { Chess } from 'chess.js';
-import { connectToGame, setToken, storage, rememberGame, formatClock } from './net.js';
+import { connectToGame, getToken, setToken, storage, rememberGame, formatClock } from './net.js';
 import { installPieceStyles, pieceClass } from './sprites.js';
 import { sfx, isMuted, toggleMute } from './sound.js';
 
@@ -33,10 +33,9 @@ $('copy').onclick = async () => {
 
 // ---------- networking ----------
 
-let net = { send() {} };
-if (!/^[a-z0-9]{10}$/.test(gameId)) {
-  $('status').textContent = 'No such game. Head back to the lobby to start one.';
-} else {
+let net = { send() {}, rename() {} };
+
+function connect() {
   net = connectToGame(
     gameId,
     {
@@ -54,6 +53,51 @@ if (!/^[a-z0-9]{10}$/.test(gameId)) {
     },
     { name: storage.get('chess:name') ?? '' },
   );
+}
+
+/** Pixel-styled name prompt. Resolves with the trimmed name ('' if skipped). */
+function askName({ title, hint, button, value = '' }) {
+  return new Promise((resolve) => {
+    const dlg = $('nameDialog');
+    const input = $('nameInput');
+    $('nameTitle').textContent = title;
+    $('nameHint').textContent = hint;
+    dlg.querySelector('button[type=submit]').textContent = button;
+    input.value = value;
+    dlg.onclose = () => resolve(dlg.returnValue === 'cancel' ? '' : input.value.trim().slice(0, 24));
+    dlg.returnValue = '';
+    dlg.showModal();
+    input.select();
+  });
+}
+$('nameDialog').addEventListener('cancel', (e) => {
+  e.target.returnValue = 'cancel';
+});
+
+if (!/^[a-z0-9]{10}$/.test(gameId)) {
+  $('status').textContent = 'No such game. Head back to the lobby to start one.';
+} else if (!getToken(gameId) && !storage.get('chess:name')) {
+  // First visit to this game with no saved name: ask before taking a seat.
+  $('status').textContent = 'Enter your name to join…';
+  askName({
+    title: "Who's playing?",
+    hint: "Enter a name so your opponent knows who they're up against.",
+    button: '▶ Join game',
+  }).then((name) => {
+    if (name) storage.set('chess:name', name);
+    connect();
+  });
+} else {
+  connect();
+}
+
+/** Rename yourself (players only). The server updates the seat when we rejoin with the new name. */
+async function renameSelf() {
+  const current = state?.players[you]?.name ?? storage.get('chess:name') ?? '';
+  const name = await askName({ title: 'Change name', hint: 'This is what your opponent sees.', button: 'Save', value: current });
+  if (!name || name === current) return;
+  storage.set('chess:name', name);
+  net.rename(name);
 }
 
 const send = (msg) => net.send(msg);
@@ -137,6 +181,7 @@ function renderPlayers() {
     const p = state?.players[color];
     el.querySelector('.pname').textContent =
       (p ? p.name : 'Waiting for opponent…') + (color === you ? ' (you)' : '');
+    el.querySelector('.rename').hidden = color !== you;
     el.classList.toggle('offline', !!p && !p.connected);
     el.classList.toggle('to-move', state?.status === 'active' && state.turn === color);
     el.querySelector('.dot').className = `dot ${color}`;
@@ -400,3 +445,5 @@ function flash(text) {
 }
 
 setInterval(() => state && clockBase && renderClocks(), 100);
+
+for (const b of document.querySelectorAll('.rename')) b.onclick = renameSelf;

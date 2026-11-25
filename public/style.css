@@ -331,3 +331,12 @@ button.ghost { background: transparent; --edge: var(--purple); }
 .gl-badge.done { background: transparent; box-shadow: inset 0 0 0 2px var(--plum); }
 .gl-x { padding: 8px; font-size: 10px; }
 optgroup { font-family: var(--font-pixel); font-size: 11px; color: var(--cyan); }
+
+/* ---------- name dialog ---------- */
+.name-dialog { padding: 0; border: 0; background: transparent; color: var(--text); max-width: min(420px, calc(100vw - 32px)); width: 100%; }
+.name-dialog::backdrop { background: rgba(16, 16, 21, 0.8); backdrop-filter: blur(2px); }
+.name-dialog form { display: grid; gap: 14px; --edge: var(--cyan); }
+.name-dialog input { width: calc(100% - 2 * var(--px)); }
+.player .rename { padding: 6px 8px; min-width: 0; font-size: 12px; }
+.player .pname { flex: 0 1 auto; }
+.player .clock { margin-left: auto; }
