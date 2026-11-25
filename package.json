@@ -1,0 +1,26 @@
+{
+  "name": "chess",
+  "version": "1.0.0",
+  "description": "Web-based multiplayer chess",
+  "scripts": {
+    "start": "node scripts/serve.js",
+    "test": "node --test test/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Loopback-Games/chess.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Loopback-Games/chess/issues"
+  },
+  "homepage": "https://github.com/Loopback-Games/chess#readme",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "chess.js": "^1.4.0"
+  },
+  "private": true
+}
